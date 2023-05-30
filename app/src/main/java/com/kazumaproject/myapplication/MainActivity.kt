@@ -11,10 +11,10 @@ import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.google.common.base.Splitter
-import com.kazumaproject.myapplication.database.model.DictionaryOne
-import com.kazumaproject.myapplication.database.model.DictionaryZero
+import com.kazumaproject.myapplication.database.model.DictionaryWord
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 import org.trie4j.patricia.PatriciaTrie
 import javax.inject.Inject
 
@@ -36,49 +36,24 @@ class MainActivity : AppCompatActivity() {
 
         val pat = PatriciaTrie()
 
-
         lifecycleScope.launch {
-            progressBar.isVisible = true
+
             Log.d("create database: ","start: ${System.currentTimeMillis()}")
-            val readTextThenCreateDatabaseAsyncList = listOf(
-                async {
-                    readDictionary00("dictionary00.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary01.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary02.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary03.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary04.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary05.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary06.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary07.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary08.txt", pat)
-                },
-                async {
-                    readDictionary00("dictionary09.txt", pat)
-                },
-                async {
-                    readDictionary00("suffix.txt", pat)
-                },
-            )
 
-            readTextThenCreateDatabaseAsyncList.awaitAll()
+            viewModel.getAllWords().collectLatest {  words ->
 
-            progressBar.isVisible = false
+                if (words.isEmpty()){
+                    progressBar.isVisible = true
+                    readDictionaryTxt("words.txt")
+                    readDictionaryTxt("words_alpha.txt")
+                }
+
+                progressBar.isVisible = false
+                words.forEach {
+                    pat.insert(it.word)
+                }
+            }
+
             Log.d("create database: ","finished: ${System.currentTimeMillis()}")
             sharedPreference.isInitialStart = true
 
@@ -87,14 +62,30 @@ class MainActivity : AppCompatActivity() {
 
         editText.addTextChangedListener { editable ->
             val resultList = mutableListOf<String?>()
-            val resultList2 = emptyList<String>()
             if(editable.isNullOrBlank()) {
                 textView.text = ""
                 resultList.clear()
+                return@addTextChangedListener
             }
-            editable?.let { ed ->
-                pat.commonPrefixSearch(ed.toString()).forEach {
-                    resultList.add(it)
+            editable.let { ed ->
+                pat.predictiveSearch(ed.toString()).forEachIndexed { index, s ->
+
+
+                    when(ed.length){
+                        0,1,2,3 ->{
+                            if (ed.length == s.length ||
+                                ed.length + 1 == s.length ||
+                                ed.length + 2 == s.length){
+                                resultList.add(s)
+                            }
+                        }
+                        else ->{
+                            resultList.add(s)
+                        }
+                    }
+
+
+
                 }
                 textView.text = resultList.toString()
             }
@@ -103,20 +94,20 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private suspend fun readDictionary00(
+    private suspend fun readDictionaryTxt(
         fileName: String,
-        patriciaTrie: PatriciaTrie
-    ) = withContext(Dispatchers.Default) {
+    ) {
         try {
             val inputStream = resources.assets.open(fileName)
             inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    val a = Splitter.on("\t").split(
-                        line
+
+                viewModel.insertWords(lines.map {
+                    DictionaryWord(
+                        word = it,
+                        createdTime = System.currentTimeMillis(),
                     )
-                    patriciaTrie.insert(a.first())
-                    Log.d("Loaded dictionary word: ", "${a.first()} ${a.last()}")
-                }
+                }.asIterable())
+
             }
 
         } catch (e: Exception) {

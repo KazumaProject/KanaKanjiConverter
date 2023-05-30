@@ -2,15 +2,13 @@ package com.kazumaproject.myapplication.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.kazumaproject.myapplication.database.model.DictionaryOne
-import com.kazumaproject.myapplication.database.model.DictionaryZero
+import com.kazumaproject.myapplication.database.model.DictionaryWord
 
 @Database(
-    entities = [DictionaryZero::class, DictionaryOne::class],
-    version = 7,
+    entities = [DictionaryWord::class],
+    version = 6,
     exportSchema = false
 )
 abstract class DictionaryDatabase: RoomDatabase() {
-    abstract fun dictionaryZeroDao(): DictionaryZeroDao
-    abstract fun dictionaryOneDao(): DictionaryOneDao
+    abstract fun dictionaryWordDao(): DictionaryWordDao
 }

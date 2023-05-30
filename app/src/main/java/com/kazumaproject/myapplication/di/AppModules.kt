@@ -2,8 +2,11 @@ package com.kazumaproject.myapplication.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kazumaproject.myapplication.SharedPreference
 import com.kazumaproject.myapplication.database.DictionaryDatabase
+import com.kazumaproject.myapplication.database.DictionaryWordDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,16 +22,11 @@ object AppModules {
     @Provides
     fun providesNoteDatabase(
         @ApplicationContext context: Context
-    ) = Room.databaseBuilder(context, DictionaryDatabase::class.java, "dictionary_word.db")
-        .build()
+    ) = Room.databaseBuilder(context, DictionaryDatabase::class.java, "english_word.db").build()
 
     @Singleton
     @Provides
-    fun providesDictionaryZeroDao(db: DictionaryDatabase) = db.dictionaryZeroDao()
-
-    @Singleton
-    @Provides
-    fun providesDictionaryOneDao(db: DictionaryDatabase) = db.dictionaryOneDao()
+    fun providesDictionaryWordDao(db: DictionaryDatabase): DictionaryWordDao = db.dictionaryWordDao()
 
     @Singleton
     @Provides
